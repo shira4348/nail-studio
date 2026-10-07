@@ -1,0 +1,20 @@
+# מערכת הפעלה
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# עורכים
+.vscode/
+.idea/
+*.swp
+
+# תלויות וכלי dev (אם יתווסף שרת סטטי / בילד)
+node_modules/
+dist/
+.cache/
+*.log
+npm-debug.log*
+
+# סביבה
+.env
+.env.local

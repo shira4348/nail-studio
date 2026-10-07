@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="סטודיו שירה">
+  <rect width="64" height="64" rx="0" fill="#F4F0E8"/>
+  <g fill="none" stroke="#1F1B18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M33,13 C25,13 20,19 19,27 C18.5,30 18,31 16.5,33 L12,37.5 C14.5,38.5 15.5,38.5 17,39.5 C15.5,41.5 15.5,42.5 17,43.5 C19.5,45 19.5,46.5 17,48.5 C18,51.5 21,54.5 26,56" stroke-width="2.6"/>
+    <path d="M33,13 C44,13 50,21 51.5,31 C53,41 51,51 46,59" stroke-width="3"/>
+    <path d="M36,17 C43,20 46,28 46,37 C46,45 44.5,52 42,58" stroke-width="2"/>
+    <path d="M31,22 C37,26 39.5,33 39,41 C38.7,48 37.5,53 36,57" stroke-width="1.7"/>
+  </g>
+</svg>

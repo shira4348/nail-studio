@@ -1,0 +1,744 @@
+/* ---------------------------------------------------------------------------
+   פלטה: נוד חם ונקי.
+   --accent משמש לקישוט (קווים, נקודות, רקעים עדינים).
+   --accent-deep משמש לכל מקום שבו יש טקסט לבן על האקצנט, כי --accent עצמו
+   נותן יחס ניגודיות של 3.1 מול לבן — מתחת לסף AA לטקסט רגיל.
+   --------------------------------------------------------------------------- */
+/* הדפדפן בטלפון מכהה אתרים שלא מצהירים אחרת, והתוצאה הייתה אקצנט קרמל
+   שהופך לאדום-יין וציפורניים שנצבעות כהות בקנבס. only light מוציא את הדף
+   מהאלגוריתם הזה. אין כאן ערכת כהה, אז אין מה לאבד. */
+:root{color-scheme:only light;
+  --bg:#F4F0E8;          /* נייר שנצהיב מעט, לא לבן */
+  --surface:#FBF9F4;
+  --ink:#191613;         /* דיו. כמעט שחור, אף פעם לא שחור */
+  --muted:#6B625A;
+  /* בורדו. במגזין צרפתי ישן יש בדיוק צבע אחד מלבד הדיו, והוא מופיע
+     בפחות מעשר נקודות בכל הגיליון. כאן: הנקודה שאחרי השם, מספרי
+     המקטעים, ואות הפתיחה. שום דבר אחר. */
+  --accent:#8C2F32;
+  --accent-deep:#6E2427;
+  --accent-soft:#8C2F3214;
+  --line:#DED6C9;
+  --hair:#19161340;      /* קו שיער כהה, לחלוקות מבניות */
+  --wa:#0F7A6D;
+  /* פינות כמעט ישרות. גלולות נראות כמו תבנית מוכנה; קו ישר נראה מכוון. */
+  /* השוליים הצדדיים של כל הדף. במסך צר הם גדלים ולא קטנים:
+     טקסט שנוגע בקצה המסך נראה דחוס, וגם קשה יותר לגלול לידו בלי
+     ללחוץ עליו בטעות. */
+  --gutter:24px;
+  --r:3px;
+  --r-lg:6px;
+  /* דוד לכותרות, פרנק-רוהל לציטוטים ולגוף סריף. ראי index.html. */
+  --display:'David Libre',Georgia,serif;
+  --serif:'Frank Ruhl Libre',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Assistant',system-ui,sans-serif;
+  /* 400 ולא 300: משקל דק בעברית מאבד את הקוצים ונראה מטושטש במסך טלפון. */
+  font-weight:400;
+  font-size:17px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:var(--display);font-weight:500;line-height:1.12}
+h1{letter-spacing:-.02em;font-weight:400}
+/* אותיות רישיות קטנות במרווח רחב מאוד. זה הסימן הטיפוגרפי היחיד שאי אפשר
+   לטעות בו — בלעדיו כל עמוד נראה כמו אתר, ואיתו כמו עמוד מודפס. */
+.eyebrow,.folio{
+  font-family:'Playfair Display',Georgia,serif;
+  font-size:11px;letter-spacing:.32em;text-transform:uppercase;
+  color:var(--muted);font-weight:400;
+}
+/* קישוט מרכזי בין מקטעים. מעוין קטן — מה שהיה בדף המודפס במקום רווח. */
+.rule-orn{
+  display:flex;align-items:center;gap:14px;margin:56px 0;color:var(--hair);
+}
+.rule-orn::before,.rule-orn::after{content:"";flex:1;height:1px;background:var(--hair)}
+.rule-orn span{font-size:9px;color:var(--accent);transform:rotate(45deg);line-height:1}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent-deep);outline-offset:3px;border-radius:2px}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:var(--gutter)}
+@media (max-width:760px){:root{--gutter:30px}}
+@media (max-width:380px){:root{--gutter:24px}}
+
+/* ---------- כותרת קבועה ---------- */
+/* המסטהד. שם הגיליון במרכז, קו כפול מתחתיו, והניווט מתחת לקו —
+   הפריסה של שער מגזין, לא של סרגל ניווט. */
+.site-head{
+  padding:22px 0 0;position:sticky;top:0;z-index:40;
+  background:color-mix(in srgb,var(--bg) 92%,transparent);
+  backdrop-filter:saturate(1.3) blur(10px);
+  /* קו כפול: עבה מתחת לדק. זה הפרט שהעין קוראת כ"מודפס". */
+  border-bottom:3px double var(--hair);
+}
+.head-row{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding-bottom:14px;position:relative;
+}
+.mark{
+  font-family:var(--display);font-weight:400;
+  font-size:clamp(24px,4.4vw,34px);letter-spacing:.06em;
+  display:flex;align-items:baseline;gap:6px;
+}
+/* הנקודה אחרי השם היא הסימן היחיד שצבוע בכל העמוד. */
+.mark span{color:var(--accent)}
+/* קו הקולופון: מקום ומספר גיליון, כמו מתחת לכל שער. בזרימה הרגילה של
+   העמודה — כך הוא גם יושב מתחת לשם וגם תופס את המקום של עצמו. */
+.head-row::after{
+  content:"BNEI BRAK";
+  font-family:'Playfair Display',Georgia,serif;
+  font-size:10px;letter-spacing:.34em;color:var(--muted);line-height:1;
+  margin-top:2px;
+}
+/* הזמנה ולא כפתור: קו תחתון בלבד, בפינה, מחוץ למרכז הסימטרי. */
+.head-cta{
+  position:absolute;inset-inline-end:0;top:10px;
+  color:var(--ink);text-decoration:none;white-space:nowrap;
+  font-family:'Playfair Display',Georgia,serif;
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  border-bottom:1px solid var(--accent);padding-bottom:3px;
+}
+.head-cta:hover{color:var(--accent)}
+@media (max-width:640px){
+  .site-head{padding-top:16px}
+  .mark{font-size:22px}
+  .head-row::after{font-size:9px;letter-spacing:.22em}
+  /* בטלפון אין מקום לשלושתם בשורה. ההזמנה יורדת מתחת לקולופון. */
+  .head-cta{position:static;margin-top:20px;font-size:10px}
+}
+
+/* ---------- hero ---------- */
+/* האיור יושב מאחורי הכותרת ולא לידה: קו דק על נייר הוא רקע, לא תמונה.
+   הוא נטען כרקע ולא כ-<img> בכוונה — אם הקובץ חסר, פשוט אין כלום, בלי
+   סמל תמונה שבורה. */
+/* הפתיח ממורכז, כמו פתיח של כתבה. האיור עובר אל מאחוריו ולמטה ולא
+   לצדו: בטקסט ממורכז אין "צד פנוי", וכל דבר שיושב בצד שובר את הציר. */
+.hero{
+  padding:40px 0 30px;position:relative;isolation:isolate;overflow:hidden;
+  min-height:420px;display:flex;flex-direction:column;justify-content:center;
+  text-align:center;
+}
+.hero::before{
+  content:"";position:absolute;z-index:-1;
+  inset-inline:-40px;bottom:-56px;height:min(124%,560px);
+  background:url("images/hero.png") no-repeat bottom center/contain;
+  opacity:.2;pointer-events:none;
+  mix-blend-mode:multiply;
+}
+h1{font-size:clamp(34px,5.2vw,58px);max-width:15ch;margin-inline:auto;position:relative}
+/* הפסקה הפותחת נושאת את התפקיד של אות הפתיחה: גדולה יותר משאר הגוף,
+   בצבע הדיו ולא באפור, ובסריף. זה מה שמסמן "כאן מתחילים" בעמוד מודפס
+   כשאין רישיות לשחק בהן. */
+.lede{
+  margin-top:24px;max-width:40ch;margin-inline:auto;
+  font-size:19px;line-height:1.65;color:var(--muted);
+  font-family:var(--serif);
+}
+/* קו קצר מתחת לפתיח — סוגר את הבלוק הממורכז במקום להשאיר אותו מרחף. */
+.hero::after{
+  content:"";width:54px;height:1px;background:var(--accent);
+  margin:30px auto 0;
+}
+@media (max-width:760px){
+  .hero{padding:44px 0 36px;min-height:300px}
+  /* בטלפון הכותרת והאיור נאבקים על אותו רוחב. האיור מוותר. */
+  .hero::before{inset-inline:-12px;height:min(110%,430px);opacity:.14}
+  h1{max-width:none}
+}
+
+/* ---------- עמוד הבית ---------- */
+/* הכרטיסים מופרדים בקווי שיער ולא במסגרות. מסגרת סביב כל אחד הייתה
+   מחזירה את מראה התבנית שהתחלנו ממנו; קו בין שניים הוא מה שעושה עיתון. */
+/* flex ולא grid, וזו הסיבה היחידה: חמישה כרטיסים ב-grid של שלוש
+   עמודות משאירים את החמישי תלוי בקצה השורה. ב-flex עם justify-content
+   השורה החלקית מתמרכזת לבד — שלושה ומתחתיהם שניים באמצע.
+   auto-fit היה גרוע עוד יותר: הוא דחס ארבעה לשורה ואחד לבד מתחת. */
+.home-nav{
+  margin-top:48px;display:flex;flex-wrap:wrap;justify-content:center;
+  border-top:1px solid var(--hair);
+}
+.home-card{
+  flex:0 1 33.3333%;
+  display:block;text-decoration:none;color:inherit;
+  padding:26px 22px 28px;border-bottom:1px solid var(--hair);
+  transition:background .2s;
+}
+/* שניים בשורה, ואז אחד. המספרים מפורשים כי המטרה היא פריסה מסוימת,
+   לא 'כמה שנכנס'. */
+@media (max-width:860px){.home-card{flex-basis:50%}}
+@media (max-width:560px){.home-card{flex-basis:100%}}
+.home-card:hover{background:var(--accent-soft)}
+.home-icon{width:26px;height:26px;color:var(--accent);display:block}
+.home-card h3{
+  margin-top:16px;font-size:21px;font-weight:400;letter-spacing:.02em;
+}
+.home-card p{margin-top:8px;color:var(--muted);font-size:15.5px;line-height:1.6}
+
+.home-facts{
+  margin-top:56px;padding-top:28px;border-top:3px double var(--hair);
+  display:grid;gap:26px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  font-size:15px;color:var(--muted);
+}
+.home-facts strong{
+  display:block;color:var(--ink);margin-bottom:10px;
+  font-family:'Playfair Display',Georgia,serif;font-weight:400;
+  font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;
+}
+.home-facts .hours{font-variant-numeric:tabular-nums}
+
+/* ---------- טאבים ---------- */
+/* גלולות צבועות הן ברירת המחדל של כל תבנית. קו תחתון הוא ניווט של מגזין:
+   פחות דיו, יותר היררכיה, והמילים עצמן נושאות את המשקל. */
+.tabs{display:flex;gap:30px;flex-wrap:wrap;padding-bottom:2px;justify-content:center}
+.tab{
+  appearance:none;border:0;background:none;padding:6px 0 13px;
+  font-family:var(--display);font-size:17px;
+  letter-spacing:.07em;
+  color:var(--muted);cursor:pointer;position:relative;white-space:nowrap;
+}
+.tab::after{
+  content:"";position:absolute;inset-inline:0;bottom:-1px;height:2px;
+  background:var(--ink);transform:scaleX(0);transform-origin:inline-end;
+  transition:transform .22s ease;
+}
+.tab:hover{color:var(--ink)}
+.tab:hover::after{transform:scaleX(.35)}
+.tab[aria-selected="true"]{color:var(--ink);font-weight:700}
+.tab[aria-selected="true"]::after{transform:scaleX(1)}
+@media (max-width:520px){.tabs{gap:17px}.tab{font-size:15px;letter-spacing:.04em}}
+
+/* padding-block ולא padding: הקיצור מאפס גם את padding-inline, ואיתו
+   את הגאטר של .wrap — וכל תוכן הלשוניות נצמד לשולי המסך. */
+.panel{padding-block:56px 10px}
+/* קו מעל כל כותרת מקטע — מבנה, לא קישוט. המספור ("Nº 01") הוסר: על אתר
+   של סטודיו הוא לא מספר כלום, הוא רק מתחזה למגזין. */
+.panel,.booking-block{position:relative}
+.panel>h2,.block>h2,.booking-block>h2{
+  font-size:clamp(30px,4.8vw,44px);font-weight:400;
+  padding-top:22px;border-top:1px solid var(--hair);
+}
+.sub{color:var(--muted);margin-top:14px;max-width:50ch}
+.block{margin-top:72px;padding-top:8px}
+
+/* ---------- מחירון ---------- */
+.menu{margin-top:34px;display:grid;gap:34px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.menu h3{
+  font-size:19px;font-weight:400;padding-bottom:10px;
+  border-bottom:1px solid var(--ink);display:inline-block;letter-spacing:.04em;
+}
+.menu ul{list-style:none;margin-top:16px}
+.menu li{display:flex;align-items:baseline;gap:8px;padding:9px 0}
+.menu .dots{flex:1;border-bottom:1px dotted var(--line);transform:translateY(-4px)}
+.menu .price{font-variant-numeric:tabular-nums;color:var(--muted)}
+.menu .note{font-size:14px;color:var(--muted);margin-top:14px}
+
+/* ---------- גלריה ---------- */
+.grid{margin-top:32px;list-style:none;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.tile{
+  aspect-ratio:1;border-radius:var(--r);display:flex;align-items:flex-end;padding:14px;
+  color:#fff;font-size:15px;text-shadow:0 1px 6px rgba(0,0,0,.4);
+  background-image:linear-gradient(145deg,rgba(255,255,255,.3),rgba(0,0,0,.25));
+}
+.shot{
+  display:block;width:100%;padding:0;border:none;background:none;
+  border-radius:var(--r);overflow:hidden;cursor:zoom-in;
+}
+.shot img{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.shot:hover img{filter:brightness(1.05)}
+/* אינסטגרם כופה min-width של 326px בסגנון inline על ה-iframe שהיא מזריקה,
+   אז עמודה צרה מזה מגלישה את הדף לרוחב. הרשת עוברת למידה שלה, ו-min()
+   מאפשר לעמודה להתכווץ במסך צר במקום לשבור. ה-!important נדרש כי מול
+   סגנון inline של צד שלישי גיליון סגנונות רגיל מפסיד. */
+.grid:has(.shot-embed){grid-template-columns:repeat(auto-fit,minmax(min(326px,100%),1fr))}
+.shot-embed{min-width:0}
+/* הגובה עצמו נקבע ב-gallery.js אחרי שאינסטגרם מודדת את הפוסטים. כאן רק
+   החיתוך, כדי שלא יהיה רגע שבו הריל גולש מהתא לפני שהסקריפט מספיק. */
+.shot-embed.is-reel{overflow:hidden}
+.shot-embed .instagram-media{
+  margin:0!important;min-width:0!important;max-width:100%!important;width:100%!important;
+}
+.gal-widget{margin-top:32px}
+.gal-note{margin-top:18px;font-size:14px;color:var(--muted)}
+#panel-gallery iframe{max-width:100%;border:0}
+
+/* לייטבוקס. <dialog> נותן מלכודת פוקוס וסגירה ב-Esc בלי קוד. */
+.lb{
+  border:none;border-radius:12px;padding:16px;background:var(--surface);
+  max-width:min(900px,92vw);max-height:92vh;color:var(--ink);
+}
+.lb::backdrop{background:rgba(59,43,38,.72)}
+.lb-bar{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.lb-count{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.lb-close{
+  border:none;background:none;font-size:30px;line-height:1;color:var(--muted);
+  cursor:pointer;padding:0 6px;
+}
+.lb-close:hover{color:var(--ink)}
+.lb-stage{display:flex;align-items:center;gap:10px;margin-top:10px}
+.lb-img{flex:1;min-width:0;max-height:70vh;object-fit:contain;border-radius:6px}
+.lb-nav{
+  flex:none;width:42px;height:42px;border:1px solid var(--line);border-radius:50%;
+  background:var(--surface);font-size:24px;line-height:1;color:var(--ink);cursor:pointer;
+}
+.lb-nav:hover{border-color:var(--accent-deep);color:var(--accent-deep)}
+.lb-cap{margin-top:12px;font-size:15px;color:var(--muted);text-align:center}
+
+/* ---------- ביקורות ---------- */
+.quotes{margin-top:30px;display:grid;gap:26px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+blockquote{border-inline-start:1px solid var(--ink);padding-inline-start:20px}
+blockquote p{font-family:var(--serif);font-size:18px;line-height:1.55}
+blockquote cite{display:block;margin-top:10px;font-size:14px;color:var(--muted);font-style:normal}
+
+/* ---------- קביעת תור ---------- */
+.booking-block{padding-block:56px;margin-top:40px;border-top:1px solid var(--line)}
+.book{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:32px;margin-top:28px}
+.book-title{font-family:var(--serif);font-size:18px;font-weight:500;display:block}
+.slots{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.slot{
+  padding:9px 16px;border:1px solid var(--line);background:var(--surface);border-radius:3px;
+  font-family:inherit;font-size:15px;cursor:pointer;font-variant-numeric:tabular-nums;
+}
+.slot:hover{border-color:var(--accent-deep);color:var(--accent-deep)}
+.slot[aria-pressed="true"]{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+/* הפעולה הראשית היחידה בעמוד. שחור-דיו ולא קרמל: מול נייר שקט, ניגודיות
+   היא מה שמושך את העין, לא גוון. */
+.cta{
+  display:inline-block;margin-top:26px;background:var(--ink);color:var(--bg);
+  border:1px solid var(--ink);padding:14px 32px;border-radius:var(--r);
+  font-family:inherit;font-size:17px;cursor:pointer;transition:background .18s,color .18s;
+}
+.cta:hover{background:transparent;color:var(--ink)}
+.confirm{margin-top:14px;font-size:15px;color:var(--muted);min-height:1.7em}
+
+/* ---------- פוטר ---------- */
+footer{border-top:1px solid var(--hair);padding:44px 0 100px;font-size:15px;color:var(--muted)}
+.fgrid{display:grid;gap:26px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+/* כותרות הפוטר הן תוויות, לא כותרות. רישיות קטנות במרווח רחב. */
+footer strong{
+  display:block;color:var(--ink);margin-bottom:10px;
+  font-family:"Playfair Display",Georgia,serif;font-weight:400;
+  font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;
+}
+.hours{font-variant-numeric:tabular-nums}
+
+/* ---------- כפתור וואטסאפ צף ---------- */
+/* בצד שמאל, ולא בצד ההתחלה של השורה.
+   באתר עברי inset-inline-start הוא ימין — בדיוק הצד שאליו נצמד כל הטקסט,
+   ולכן שם הכפתור יושב על סופי השורות. משמאל הוא נופל על השוליים הריקים.
+   inset-inline-end הוא הניסוח הנכון ולא left: הצד הפנוי הוא פונקציה של כיוון
+   הכתיבה, ולא של הפיזיקה. */
+.float{
+  position:fixed;inset-inline-end:var(--gutter);bottom:20px;z-index:50;
+  display:flex;align-items:center;gap:9px;
+  background:var(--wa);color:#fff;text-decoration:none;
+  padding:12px 20px;border-radius:99px;font-size:15px;
+  box-shadow:0 6px 22px rgba(15,122,109,.32);
+}
+.float:hover{filter:brightness(1.08)}
+.wa-icon{width:20px;height:20px;fill:currentColor;flex:none}
+/* במסך צר הכפתור מתכווץ אבל לא משתתק: כפתור עגול ירוק הוא ניחוש, וטקסט
+   הוא הזמנה. מקצצים ריפוד וגופן במקום למחוק את המילים. */
+@media (max-width:640px){
+  .float{padding:10px 15px;font-size:13.5px;gap:7px;inset-inline-end:var(--gutter);bottom:16px}
+  .wa-icon{width:18px;height:18px}
+}
+
+/* ---------- מעצבת הציפורניים ---------- */
+.designer{margin-top:24px}
+
+/* שתי עמודות: הבקרות בצד ההתחלה, היד דביקה בצד הסיום כדי שהתוצאה
+   תישאר על המסך בזמן עריכה. ב-RTL הילד הראשון נופל לימין. */
+.dz-layout{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,360px);
+  gap:26px;align-items:start;
+}
+.dz-side{display:grid;gap:18px;min-width:0}
+/* top חייב לפנות את הכותרת הדביקה: 14+40+12 לשורת המותג ועוד 40+12 לטאבים */
+.dz-stage{position:sticky;top:126px;display:grid;gap:14px}
+
+.dz-scopebar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.dz-scope{
+  border:1px solid var(--line);background:var(--surface);border-radius:var(--r);
+  padding:9px 18px;font-family:inherit;font-size:15px;color:var(--ink);cursor:pointer;
+}
+.dz-scope[aria-pressed="true"]{
+  background:var(--accent-soft);border-color:var(--accent);color:var(--accent-deep);font-weight:600;
+}
+.dz-scope[aria-pressed="false"]{cursor:default}
+
+.dz-card{
+  border:1px solid var(--line);border-radius:12px;background:var(--surface);
+  padding:20px;display:grid;gap:16px;
+}
+.dz-field{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.dz-label{font-size:15px;color:var(--muted);min-width:56px}
+.dz-pname{font-size:13px;color:var(--muted)}
+.dz-hint{font-size:14px;color:var(--muted)}
+.dz-row{display:flex;gap:10px;flex-wrap:wrap}
+/* לוח הגוונים. עיגולים ולא ריבועים — לק נראה ככה, וגם קל יותר להבחין
+   בין 24 עיגולים מאשר בין 24 ריבועים צמודים. */
+.dz-swatches{
+  display:grid;gap:9px;
+  grid-template-columns:repeat(auto-fill,minmax(38px,1fr));
+  max-width:420px;
+}
+.sw{
+  aspect-ratio:1;width:100%;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(0,0,0,.14);padding:0;
+  box-shadow:inset 0 -2px 4px rgba(0,0,0,.12);
+}
+/* טבעת מסביב ולא מסגרת עבה: מסגרת משנה את הגודל ומזיזה את כל הלוח. */
+.sw[aria-pressed="true"]{
+  box-shadow:inset 0 -2px 4px rgba(0,0,0,.12),0 0 0 2px var(--bg),0 0 0 4px var(--ink);
+}
+.sw:hover{transform:scale(1.08)}
+/* באצבע צריך מטרה גדולה יותר. 44px הוא המינימום המקובל למגע. */
+@media (max-width:640px){
+  .dz-swatches{grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:11px;max-width:none}
+}
+.dz-row .sw{width:34px;height:34px;aspect-ratio:auto}
+
+/* צורה: הכפתור מציג את הצללית, לא את השם */
+.dz-shape{
+  width:34px;height:56px;padding:5px 4px;
+  border:1px solid var(--line);background:var(--surface);border-radius:8px;
+  color:var(--muted);cursor:pointer;display:grid;place-items:center;
+}
+.dz-shape svg{width:100%;height:100%;display:block}
+.dz-shape:hover{border-color:var(--accent);color:var(--accent-deep)}
+.dz-shape[aria-pressed="true"]{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+
+.dz-rangewrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dz-range{width:180px;max-width:100%;accent-color:var(--accent-deep)}
+.dz-range-sm{width:104px}
+.dz-out{font-size:15px;color:var(--ink);min-width:72px}
+/* הלוח למעלה, "צבע אחר" מתחתיו: רוב הלקוחות לא יגיעו לבוחר של המערכת
+   בכלל, וזו המטרה. */
+.dz-colorwrap{display:flex;flex-direction:column;align-items:stretch;gap:16px}
+
+/* שדה הצבע. מלבן אחד: אופקית גוון, אנכית עומק. הקנבס מצויר ב-shadeHex
+   ממש, ראי designer.js. */
+.dz-mixer{display:flex;align-items:stretch;gap:14px;flex-wrap:wrap}
+.dz-mixfield{
+  position:relative;flex:1 1 240px;min-width:0;
+  aspect-ratio:240/132;border-radius:var(--r);overflow:hidden;
+  border:1px solid rgba(0,0,0,.16);cursor:crosshair;touch-action:none;
+}
+.dz-fieldpaint{display:block;width:100%;height:100%;
+  /* הקנבס הוא 240x132 פיקסלים ונמתח. החלקה תשאיר את המעבר רציף. */
+  image-rendering:auto}
+.dz-fielddot{
+  position:absolute;width:20px;height:20px;border-radius:50%;
+  transform:translate(-50%,-50%);pointer-events:none;
+  border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 1px 4px rgba(0,0,0,.35);
+}
+.dz-mixside{display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;flex:0 1 120px}
+.dz-mixdot{
+  width:52px;height:52px;border-radius:50%;flex:none;
+  border:1px solid rgba(0,0,0,.14);box-shadow:inset 0 -3px 6px rgba(0,0,0,.14);
+}
+.dz-mixhint{font-size:12px;line-height:1.45;color:var(--muted);text-align:center}
+@media (max-width:640px){
+  .dz-mixfield{flex-basis:100%;aspect-ratio:240/150}
+  .dz-mixside{flex-direction:row;flex-basis:100%;gap:12px}
+  .dz-mixhint{text-align:start}
+  .dz-fielddot{width:24px;height:24px}
+}
+.dz-custom{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.dz-picker{
+  width:44px;height:34px;padding:2px;border:1px solid var(--line);
+  border-radius:6px;background:var(--surface);cursor:pointer;
+}
+
+.dz-chip{
+  padding:7px 13px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);
+  font-family:inherit;font-size:14px;color:var(--ink);cursor:pointer;
+}
+.dz-chip:hover{border-color:var(--accent-deep);color:var(--accent-deep)}
+.dz-chip[aria-pressed="true"]{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+
+/* לוח העיצוב */
+.dz-padwrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.dz-padside{display:grid;gap:12px;flex:1;min-width:200px;justify-items:start}
+/* touch-action חיוני: בלי זה מגע גורר את הדף במקום לצייר או לגרור קישוט.
+   aspect-ratio חייב להתאים ל-viewBox (100/176), אחרת ההמרה מקואורדינטות
+   מצביע לקואורדינטות הציפורן תסטה. */
+.dz-pad{
+  display:block;width:170px;max-width:100%;aspect-ratio:100/176;height:auto;
+  background:var(--bg);border:1px solid var(--line);border-radius:12px;
+  touch-action:none;cursor:default;flex:none;
+}
+.dz-pad.is-drawing{cursor:crosshair}
+.dz-placed{cursor:grab}
+.dz-placed.is-picked{filter:drop-shadow(0 0 2px var(--ink)) drop-shadow(0 0 1px var(--ink))}
+.dz-placed:focus{outline:none}
+.dz-placed:focus-visible{filter:drop-shadow(0 0 3px var(--ink))}
+
+.dz-tray{display:grid;gap:10px;justify-items:start}
+.dz-trayrow{gap:8px}
+.dz-tray-item{
+  width:42px;height:42px;padding:6px;
+  border:1px solid var(--line);background:var(--bg);border-radius:10px;
+  color:var(--accent-deep);cursor:grab;display:grid;place-items:center;touch-action:none;
+}
+.dz-tray-item svg{width:100%;height:100%;display:block}
+.dz-tray-item:hover{border-color:var(--accent);background:var(--accent-soft)}
+.dz-tray-item.is-dragging{cursor:grabbing;border-color:var(--accent-deep)}
+
+.dz-drawbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+
+.dz-hand{
+  display:block;width:100%;max-width:100%;margin:0 auto;height:auto;
+  filter:drop-shadow(0 10px 22px rgba(59,43,38,.14));
+}
+.dz-finger{cursor:pointer}
+.dz-nail{transition:fill .2s ease}
+.dz-outline{fill:none}
+.dz-finger:hover .dz-outline{stroke:var(--accent-deep);stroke-width:3}
+.dz-finger.is-selected .dz-outline{stroke:var(--ink);stroke-width:5}
+/* ל-SVG אין outline-offset עקבי, אז המיקוד מסומן על קו המתאר של הציפורן */
+.dz-finger:focus{outline:none}
+.dz-finger:focus-visible .dz-outline{stroke:var(--ink);stroke-width:5}
+
+.dz-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
+.dz-action{
+  padding:10px 17px;border:1px solid var(--line);background:var(--surface);border-radius:3px;
+  font-family:inherit;font-size:14px;color:var(--ink);cursor:pointer;text-decoration:none;
+}
+.dz-action:hover{border-color:var(--accent-deep);color:var(--accent-deep)}
+.dz-action-primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.dz-action-primary:hover{background:transparent;color:var(--ink)}
+.dz-action:disabled,.dz-range:disabled,.dz-picker:disabled{opacity:.42;cursor:not-allowed}
+.dz-action:disabled:hover{border-color:var(--line);color:var(--ink)}
+.dz-status{font-size:14px;color:var(--muted);min-height:1.7em;text-align:center;word-break:break-word}
+
+@media (max-width:900px){
+  .dz-layout{grid-template-columns:1fr}
+  /* במסך צר היד עולה למעלה, כדי שהתוצאה תהיה הדבר הראשון שרואים */
+  .dz-stage{position:static;order:-1}
+}
+
+/* ---------- גלגל ההטבות ---------- */
+.wheel-box{margin-top:30px}
+.wh-stage{position:relative;width:min(300px,78vw);margin-inline:auto}
+.wh-wheel{
+  display:block;width:100%;height:auto;border-radius:50%;
+  box-shadow:0 8px 28px rgba(59,43,38,.18);
+  transition:transform 4.2s cubic-bezier(.16,.68,.2,1);
+}
+/* מירכוז, לא כיווניות: left/translateX פיזיים נכונים ב-RTL וב-LTR כאחד */
+.wh-pointer{
+  position:absolute;top:-6px;left:50%;transform:translateX(-50%);
+  width:0;height:0;z-index:2;
+  border-inline:11px solid transparent;border-top:20px solid var(--ink);
+}
+.wh-spin{display:block;margin:26px auto 0}
+.wh-result{margin-top:16px;font-size:17px;text-align:center;min-height:1.7em}
+.wh-claim{display:block;width:fit-content;margin:14px auto 0;text-align:center}
+.wh-note{margin-top:14px;font-size:14px;color:var(--muted);text-align:center}
+.wh-legend{margin-top:26px;list-style:none;display:grid;gap:9px;justify-content:center;font-size:15px}
+.wh-legend li{display:flex;align-items:center;gap:10px}
+.wh-dot{width:13px;height:13px;border-radius:50%;flex:none}
+
+/* חייב להישאר אחרון — מבטל גם את סיבוב הגלגל ואת מעבר הצבע בציפורניים */
+
+/* ---------- לוח התורים ---------- */
+.cal{
+  border:1px solid var(--line);border-radius:10px;background:var(--bg);
+  padding:16px;max-width:430px;
+}
+.cal-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cal-label{flex:1;text-align:center;line-height:1.25}
+.cal-title{display:block;font-family:var(--serif);font-size:18px;font-weight:500}
+.cal-heb{display:block;font-size:13px;color:var(--muted)}
+.cal-nav{
+  width:38px;height:38px;flex:none;border:1px solid var(--line);background:var(--surface);
+  border-radius:8px;font-size:20px;line-height:1;color:var(--ink);cursor:pointer;
+}
+.cal-nav:hover:not(:disabled){border-color:var(--accent-deep);color:var(--accent-deep)}
+.cal-nav:disabled{opacity:.3;cursor:not-allowed}
+
+.cal-grid{display:grid;gap:4px}
+/* עמודה לכל יום בשבוע. במסמך RTL ראשון נופל מימין מעצמו. */
+.cal-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{
+  text-align:center;font-size:12px;color:var(--muted);padding-bottom:4px;
+}
+.cal-pad{display:block}
+.cal-day{
+  position:relative;aspect-ratio:1;min-width:0;padding:2px;
+  border:1px solid transparent;border-radius:8px;background:var(--surface);
+  font-family:inherit;font-size:15px;color:var(--ink);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  font-variant-numeric:tabular-nums;
+}
+.cal-day:hover:not(.is-closed){border-color:var(--accent);background:var(--accent-soft)}
+.cal-day.is-picked{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+/* יום סגור נשאר גלוי וניתן למיקוד — הסיבה נמצאת ב-aria-label ובתגית. */
+.cal-day.is-closed{background:transparent;color:var(--muted);opacity:.55;cursor:not-allowed}
+.cal-num{line-height:1}
+/* שם החג. קטן בכוונה: הוא הסבר, לא כותרת. */
+.cal-tag{
+  font-size:9px;line-height:1.1;color:var(--muted);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+/* הטמעת לוח חיצוני. הגובה מגיע מ-data.js כי הוא תלוי בספק. */
+.book-embed iframe{display:block;width:100%;max-width:100%;border:0;border-radius:6px}
+.book-fallback{margin-top:12px;font-size:14px;color:var(--muted)}
+.book-step{margin-bottom:26px}
+/* כפתור שירות: שם מעל משך. המשך מופיע כאן ולא רק בחישוב
+   פנימי, כדי שיהיה ברור למה לבנייה יש פחות שעות פנויות. */
+.svc{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 16px;text-align:start}
+.svc-name{font-size:15px}
+.svc-time{font-size:12.5px;opacity:.72}
+.book-slots{margin-top:26px}
+.book-empty{margin-top:12px;font-size:15px;color:var(--muted)}
+.book-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:20px}
+.book-actions .cta{margin-top:0;text-decoration:none}
+.book-ics{
+  padding:13px 22px;border:1px solid var(--line);background:var(--surface);border-radius:3px;
+  font-size:15px;color:var(--ink);text-decoration:none;
+}
+.book-ics:hover{border-color:var(--accent-deep);color:var(--accent-deep)}
+
+@media (max-width:520px){
+  .cal{padding:12px}
+  .cal-tag{display:none}
+}
+
+
+/* ---------- מדידה על היד האמיתית ---------- */
+.dz-viewbar{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+.dz-view{
+  padding:8px 18px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);
+  font-family:inherit;font-size:14px;color:var(--ink);cursor:pointer;
+}
+.dz-view:hover{border-color:var(--accent-deep);color:var(--accent-deep)}
+.dz-view[aria-pressed="true"]{
+  background:var(--accent-deep);border-color:var(--accent-deep);color:#fff;
+}
+
+.dz-live{display:grid;gap:10px}
+/* יחס 4:3 שומר על מקום קבוע, כדי שהדף לא יקפוץ כשהמצלמה נדלקת. */
+.tz-frame{
+  position:relative;aspect-ratio:4/3;width:100%;border-radius:12px;overflow:hidden;
+  background:var(--ink);display:grid;place-items:center;
+}
+/* הווידאו והקנבס חופפים במדויק: אותו אזור, אותו object-fit, זה מעל זה. */
+.tz-video,.tz-canvas{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+}
+/* מראה רק במצלמה הקדמית: הזזת יד ימינה מזיזה את ההשתקפות ימינה. במצלמה
+   האחורית רואים את היד כמו שהיא. הקנבס מתהפך בקוד ולא כאן, כי הוא מצויר
+   בקואורדינטות של הווידאו. */
+.tz-frame.is-mirrored .tz-video{transform:scaleX(-1)}
+/* סרגל הכלים יושב על התמונה ולא מתחתיה: ביד מורמת מול המצלמה אין מקום
+   להוריד את המבט, וכפתור שנמצא בתוך הפריים נלחץ באגודל בלי לזוז. */
+.tz-tools{
+  position:absolute;inset-inline:10px;bottom:10px;z-index:2;
+  display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
+}
+.tz-tool{
+  border:0;border-radius:99px;cursor:pointer;padding:9px 15px;
+  background:rgba(0,0,0,.52);color:#fff;font-family:inherit;font-size:13.5px;line-height:1;
+  backdrop-filter:blur(4px);
+}
+.tz-tool:hover{background:rgba(0,0,0,.72)}
+.tz-tool:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.tz-freeze[aria-pressed="true"]{background:var(--accent-deep)}
+/* אין מה להקפיא ואין מה להחליף כשהמצלמה כבויה. */
+.tz-frame:not(.is-live) .tz-tools{display:none}
+/* מסגרת דקה מסמנת שהתמונה עומדת, כדי שלא ייראה כאילו המצלמה נתקעה. */
+.tz-frame.is-frozen::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  box-shadow:inset 0 0 0 3px var(--accent-deep);border-radius:12px;
+}
+.tz-canvas{pointer-events:none}
+/* שכבת הטעינה. בתוך המסגרת ולא מתחתיה — שם העין כבר מחכה לתמונה. */
+.tz-loading{
+  position:absolute;inset:0;z-index:3;display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  padding:0 28px;text-align:center;color:#fff;
+}
+.tz-frame.is-loading .tz-loading{display:flex}
+.tz-bar{
+  width:min(240px,70%);height:3px;border-radius:2px;overflow:hidden;
+  background:rgba(255,255,255,.22);
+}
+.tz-bar-fill{
+  display:block;height:100%;width:0;background:#fff;border-radius:2px;
+  transition:width .25s ease;
+}
+/* בלי אחוזים: פס נע. פס שקופא על מספר נראה תקוע, ופס נע אומר "עובד". */
+.tz-loading.is-indeterminate .tz-bar-fill{
+  width:38%;animation:tz-slide 1.25s ease-in-out infinite;
+}
+@keyframes tz-slide{
+  0%{margin-inline-start:-38%}
+  100%{margin-inline-start:100%}
+}
+.tz-load-note{font-size:14.5px;letter-spacing:.02em}
+.tz-load-sub{font-size:12.5px;opacity:.72}
+/* עד שהמצלמה עולה המסגרת ריקה, ואין טעם להציג ריבוע שחור. */
+.tz-frame:not(.is-live) .tz-video{opacity:0}
+/* לוח הכיול, נראה רק עם ?nails=tune בכתובת. */
+.tz-knobs{display:grid;gap:8px;margin-top:10px}
+.tz-knob{display:grid;grid-template-columns:54px 1fr 52px;align-items:center;gap:10px;font-size:13px}
+.tz-knob-range{width:100%}
+.tz-knob-actions{display:flex;gap:8px;margin-top:4px}
+.tz-knob-actions .tz-tool{background:var(--ink);color:var(--bg)}
+.tz-knob-value{font:12px ui-monospace,Menlo,Consolas,monospace;text-align:start;color:var(--muted)}
+
+/* שורת אבחון, נראית רק עם ?nails=debug בכתובת. */
+.tz-debug{
+  font:12px ui-monospace,Menlo,Consolas,monospace;direction:ltr;text-align:center;
+  color:var(--muted);background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:6px 8px;margin:0;overflow-x:auto;white-space:nowrap;
+}
+.tz-status{font-size:13.5px;color:var(--muted);text-align:center;line-height:1.5;min-height:2.6em}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;scroll-behavior:auto}
+  /* הפס הנע הוא הנפשה ולא מעבר, ולכן הכלל שמעליו לא נוגע בו. במקומו פס
+     מלא ודומם — עדיין מסמן "עובד", בלי תנועה. */
+  .tz-loading.is-indeterminate .tz-bar-fill{animation:none;width:100%;opacity:.5}
+}
+
+/* ---------- עמודי מדיניות ---------- */
+/* טור צר אחד. טקסט משפטי נקרא לרוחב של 60–70 תווים, ומעבר לזה העין
+   מאבדת את תחילת השורה הבאה. */
+/* טור צר וממורכז. הטקסט בתוכו נשאר מיושר לימין — טקסט משפטי ממורכז
+   קשה לקריאה, כי כל שורה מתחילה במקום אחר. */
+.doc{max-width:680px;margin-inline:auto;padding-block:8px 40px}
+.doc-nav{
+  display:flex;gap:22px;flex-wrap:wrap;justify-content:center;padding-bottom:18px;margin-bottom:30px;
+  border-bottom:3px double var(--hair);
+  font-family:'Playfair Display',Georgia,serif;
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+}
+.doc-nav a{color:var(--muted);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:3px}
+.doc-nav a:hover{color:var(--ink);border-bottom-color:var(--accent)}
+/* הכותרות ירדו דרגה כשהמסמך נכנס ללשונית: h2 לשלושת המסמכים,
+   h3 לסעיפים שבתוכם. בדף שכבר יש בו h1 אחד, שלושה נוספים שוברים את
+   ההיררכיה — וקורא מסך מדווח עליהם כשלושה דפים נפרדים. */
+.doc h2{font-size:clamp(26px,4.2vw,36px);font-weight:400;padding-top:0;border-top:0}
+.doc h3{
+  font-size:19px;font-weight:400;margin-top:32px;padding-top:16px;
+  border-top:1px solid var(--hair);
+}
+.doc p{margin-top:14px;line-height:1.75}
+.doc ul{margin:14px 0 0;padding-inline-start:20px}
+.doc li{margin-top:9px;line-height:1.7}
+.doc a{color:var(--accent-deep)}
+.doc-date{
+  font-family:'Playfair Display',Georgia,serif;
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+  margin-top:10px;
+}
+.doc section+.rule-orn{margin:60px 0}
